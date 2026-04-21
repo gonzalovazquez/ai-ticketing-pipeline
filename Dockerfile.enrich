@@ -1,0 +1,5 @@
+FROM python:3.11-slim
+RUN pip install anthropic
+COPY enrich.py /app/enrich.py
+WORKDIR /app
+ENTRYPOINT ["python3", "enrich.py"]
