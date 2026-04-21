@@ -1,0 +1,5 @@
+FROM python:3.11-slim
+RUN pip install anthropic
+COPY classify.py /app/classify.py
+WORKDIR /app
+ENTRYPOINT ["python3", "classify.py"]
