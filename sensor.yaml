@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: github-issue-sensor
+  namespace: argo-events
+spec:
+  template:
+    serviceAccountName: argo-events-sa
+  dependencies:
+  - name: github-dep
+    eventSourceName: github-issues
+    eventName: github-issue-events
+    filters:
+      data:
+      - path: body.action
+        type: string
+        value:
+        - "opened"
+        - "edited"
+  triggers:
+  - template:
+      name: trigger-ticket-pipeline
+      argoWorkflow:
+        group: argoproj.io
+        version: v1alpha1
+        resource: workflows
+        operation: submit
+        source:
+          resource:
+            apiVersion: argoproj.io/v1alpha1
+            kind: Workflow
+            metadata:
+              generateName: ticket-pipeline-auto-
+              namespace: argo
+            spec:
+              arguments:
+                parameters:
+                - name: issue-body
+                  value: placeholder
+              workflowTemplateRef:
+                name: ticket-pipeline-template
+        parameters:
+        - src:
+            dependencyName: github-dep
+            dataKey: body.issue.body
+          dest: spec.arguments.parameters.0.value
+          operation: overwrite

@@ -87,7 +87,20 @@ def main():
         print("Usage: python3 create_jira.py <enriched_json>", file=sys.stderr)
         sys.exit(1)
 
-    result = create_jira_ticket(json.loads(sys.argv[1]))
+    # Read from file path instead of raw JSON string argument
+    arg = sys.argv[1]
+
+    if os.path.isfile(arg):
+        with open(arg, 'r') as f:
+            content = f.read().strip()  # ← strip leading/trailing whitespace
+        if not content:
+            print("Error: enriched JSON file is empty", file=sys.stderr)
+            sys.exit(1)
+        enriched = json.loads(content)
+    else:
+        enriched = json.loads(arg)
+    
+    result = create_jira_ticket(enriched)
     print(json.dumps(result, indent=2))
     print(f"\n✅ Jira ticket created: {result['url']}")
 

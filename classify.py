@@ -16,9 +16,16 @@ Output (JSON):
       "priority": "high",
       "summary": "Login button non-functional on mobile devices"
     }
+
+Fixes applied:
+    - System prompt forces JSON-only response
+    - Defensive code block stripping in case model wraps in markdown
+    - Error handling with debug output
+    - stdout flush to ensure tee captures output in Argo Workflows
 """
 
 import sys
+import os
 import json
 import anthropic
 
@@ -33,13 +40,16 @@ def classify_issue(issue_body: str) -> dict:
     Returns:
         A dictionary with severity, component, type, priority, and summary
     """
-    # Reads ANTHROPIC_API_KEY automatically from the environment
     client = anthropic.Anthropic()
 
-    prompt = f"""You are a senior engineering analyst at a software company.
-Classify the following GitHub issue and return ONLY a valid JSON object with no extra text, no markdown, no explanation.
+    # System prompt forces JSON-only output mode
+    system_prompt = (
+        "You are a JSON-only API. You must respond with a single valid JSON object "
+        "and absolutely nothing else. No markdown, no explanation, no code blocks, "
+        "no preamble. Only raw JSON."
+    )
 
-The JSON must have exactly these fields:
+    prompt = f"""Classify this GitHub issue. Return ONLY a JSON object with these exact fields:
 {{
   "severity": "critical|high|medium|low",
   "component": "a short string naming the affected system component",
@@ -48,16 +58,25 @@ The JSON must have exactly these fields:
   "summary": "a single sentence describing the issue"
 }}
 
-GitHub Issue:
-{issue_body}"""
+Issue: {issue_body}"""
 
     message = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=512,
+        system=system_prompt,
         messages=[{"role": "user", "content": prompt}]
     )
 
-    return json.loads(message.content[0].text)
+    response_text = message.content[0].text.strip()
+
+    # Defensive: strip markdown code blocks if model wraps response despite instructions
+    if response_text.startswith("```"):
+        response_text = response_text.split("```")[1]
+        if response_text.startswith("json"):
+            response_text = response_text[4:]
+        response_text = response_text.strip()
+
+    return json.loads(response_text)
 
 
 def main():
@@ -65,8 +84,20 @@ def main():
         print("Usage: python3 classify.py <issue_body>", file=sys.stderr)
         sys.exit(1)
 
-    result = classify_issue(sys.argv[1])
-    print(json.dumps(result, indent=2))
+    issue_body = sys.argv[1]
+
+    # Validate input
+    if not issue_body.strip():
+        print("Error: empty issue body received", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        result = classify_issue(issue_body)
+        print(json.dumps(result, indent=2))
+        sys.stdout.flush()
+    except Exception as e:
+        print(f"Error classifying issue: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

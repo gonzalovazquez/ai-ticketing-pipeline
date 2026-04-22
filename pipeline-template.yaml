@@ -1,0 +1,128 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: ticket-pipeline-template
+  namespace: argo
+spec:
+  entrypoint: ticket-pipeline
+  arguments:
+    parameters:
+    - name: issue-body
+      value: "default issue body"
+
+  templates:
+
+  - name: ticket-pipeline
+    dag:
+      tasks:
+      - name: classify
+        template: classify-issue
+        arguments:
+          parameters:
+          - name: issue-body
+            value: "{{workflow.parameters.issue-body}}"
+      - name: enrich
+        template: enrich-issue
+        dependencies: [classify]
+        arguments:
+          parameters:
+          - name: issue-body
+            value: "{{workflow.parameters.issue-body}}"
+          - name: classification
+            value: "{{tasks.classify.outputs.result}}"
+      - name: create-ticket
+        template: create-jira-ticket
+        dependencies: [enrich]
+        arguments:
+          parameters:
+          - name: enriched
+            value: "{{tasks.enrich.outputs.result}}"
+
+  - name: classify-issue
+    inputs:
+      parameters:
+      - name: issue-body
+    script:
+      image: ai-classifier:v3
+      imagePullPolicy: Never
+      command: [sh]
+      source: |
+        # Write issue body to file to avoid shell escaping issues
+        cat << 'ISSUE_EOF' > /tmp/issue-body.txt
+        {{inputs.parameters.issue-body}}
+        ISSUE_EOF
+        python3 /app/classify.py "$(cat /tmp/issue-body.txt)" | tee /tmp/result
+      env:
+      - name: ANTHROPIC_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: pipeline-secrets
+            key: ANTHROPIC_API_KEY
+    outputs:
+      parameters:
+      - name: result
+        valueFrom:
+          path: /tmp/result
+
+  - name: enrich-issue
+    inputs:
+      parameters:
+      - name: issue-body
+      - name: classification
+    script:
+      image: ai-enricher:v3
+      imagePullPolicy: Never
+      command: [sh]
+      source: |
+        # Write classification JSON to file to avoid shell escaping issues
+        cat << 'CLASSIFICATION_EOF' > /tmp/classification.json
+        {{inputs.parameters.classification}}
+        CLASSIFICATION_EOF
+        python3 /app/enrich.py "{{inputs.parameters.issue-body}}" /tmp/classification.json | tee /tmp/result 
+      env:
+      - name: ANTHROPIC_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: pipeline-secrets
+            key: ANTHROPIC_API_KEY
+    outputs:
+      parameters:
+      - name: result
+        valueFrom:
+          path: /tmp/result
+
+  - name: create-jira-ticket
+    inputs:
+      parameters:
+      - name: enriched
+    script:
+      image: ai-jira:v2
+      imagePullPolicy: Never
+      command: [sh]
+      source: |
+        # Write the enriched JSON to a file to avoid shell escaping issues
+        cat << 'ENRICHED_EOF' > /tmp/enriched.json
+        {{inputs.parameters.enriched}}
+        ENRICHED_EOF
+        python3 /app/create_jira.py /tmp/enriched.json
+      env:
+      - name: JIRA_EMAIL
+        valueFrom:
+          secretKeyRef:
+            name: pipeline-secrets
+            key: JIRA_EMAIL
+      - name: JIRA_API_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: pipeline-secrets
+            key: JIRA_API_TOKEN
+      - name: JIRA_BASE_URL
+        valueFrom:
+          secretKeyRef:
+            name: pipeline-secrets
+            key: JIRA_BASE_URL
+      - name: JIRA_PROJECT_KEY
+        valueFrom:
+          secretKeyRef:
+            name: pipeline-secrets
+            key: JIRA_PROJECT_KEY
