@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { QRCodeSVG } from "qrcode.react";
 
 const COLORS = {
   navy: "#1a2744",
@@ -19,6 +20,8 @@ const COLORS = {
 const fonts = `
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 `;
+
+const SLIDES = ["hero", "problem", "vsm", "architecture", "simulator", "metrics", "thankyou"];
 
 // ─── Utility: Intersection Observer Hook ───
 function useInView(threshold = 0.2) {
@@ -82,7 +85,7 @@ function Section({ id, children, dark = true, style = {} }) {
 }
 
 // ─── Navigation ───
-function Nav({ active }) {
+function Nav({ active, presentationMode }) {
   const items = [
     { id: "hero", label: "Home" },
     { id: "problem", label: "Problem" },
@@ -90,7 +93,11 @@ function Nav({ active }) {
     { id: "architecture", label: "Architecture" },
     { id: "simulator", label: "Simulator" },
     { id: "metrics", label: "Metrics" },
+    { id: "thankyou", label: "Thank You" },
   ];
+
+  if (presentationMode) return null;
+
   return (
     <nav style={{
       position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
@@ -117,6 +124,64 @@ function Nav({ active }) {
   );
 }
 
+// ─── Slide Indicator (presentation mode) ───
+function SlideIndicator({ current, total }) {
+  return (
+    <div style={{
+      position: "fixed", right: 24, top: "50%", transform: "translateY(-50%)",
+      zIndex: 200, display: "flex", flexDirection: "column", gap: 8, alignItems: "center",
+    }}>
+      {Array.from({ length: total }, (_, i) => (
+        <div key={i} style={{
+          width: i === current ? 10 : 6,
+          height: i === current ? 10 : 6,
+          borderRadius: "50%",
+          background: i === current ? COLORS.teal : COLORS.grayDark,
+          transition: "all 0.3s ease",
+          boxShadow: i === current ? `0 0 8px ${COLORS.teal}` : "none",
+        }} />
+      ))}
+      <div style={{
+        fontFamily: "'JetBrains Mono'", fontSize: 10, color: COLORS.gray,
+        marginTop: 4,
+      }}>
+        {current + 1}/{total}
+      </div>
+    </div>
+  );
+}
+
+// ─── Presentation Controls Hint ───
+function PresentationHint({ visible }) {
+  return (
+    <div style={{
+      position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+      zIndex: 200, display: "flex", gap: 16, alignItems: "center",
+      background: "rgba(15,23,41,0.9)", backdropFilter: "blur(12px)",
+      padding: "8px 20px", borderRadius: 8,
+      border: `1px solid ${COLORS.navyLight}`,
+      opacity: visible ? 1 : 0,
+      transition: "opacity 0.5s ease",
+      pointerEvents: "none",
+    }}>
+      {[
+        { keys: "← →", label: "Navigate" },
+        { keys: "Space", label: "Next" },
+        { keys: "F", label: "Fullscreen" },
+        { keys: "Esc", label: "Exit" },
+      ].map(h => (
+        <div key={h.keys} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{
+            fontFamily: "'JetBrains Mono'", fontSize: 10, color: COLORS.teal,
+            background: "rgba(45,212,168,0.15)", padding: "2px 8px", borderRadius: 4,
+          }}>{h.keys}</span>
+          <span style={{ fontFamily: "'Outfit'", fontSize: 11, color: COLORS.gray }}>{h.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Hero ───
 function Hero() {
   const [loaded, setLoaded] = useState(false);
@@ -128,13 +193,11 @@ function Hero() {
       background: `radial-gradient(ellipse at 50% 30%, ${COLORS.navyLight} 0%, ${COLORS.bg} 70%)`,
       padding: "60px 24px", position: "relative", overflow: "hidden",
     }}>
-      {/* Grid background */}
       <div style={{
         position: "absolute", inset: 0, opacity: 0.06,
         backgroundImage: `linear-gradient(${COLORS.teal} 1px, transparent 1px), linear-gradient(90deg, ${COLORS.teal} 1px, transparent 1px)`,
         backgroundSize: "60px 60px",
       }} />
-      {/* Glow */}
       <div style={{
         position: "absolute", top: "20%", left: "50%", transform: "translate(-50%,-50%)",
         width: 600, height: 600, borderRadius: "50%",
@@ -189,13 +252,13 @@ function Hero() {
 function ProblemSection() {
   const [ref, inView] = useInView(0.2);
   const wastes = [
-    { name: "Overproduction", icon: "📦", desc: "Creating tickets nobody asked for" },
+    { name: "Overproduction", icon: "\u{1F4E6}", desc: "Creating tickets nobody asked for" },
     { name: "Waiting Time", icon: "⏳", desc: "Queuing for human review" },
-    { name: "Superfluous Movement", icon: "🔄", desc: "Context switching between tools" },
-    { name: "Transport", icon: "🚚", desc: "Moving data across systems manually" },
+    { name: "Superfluous Movement", icon: "\u{1F504}", desc: "Context switching between tools" },
+    { name: "Transport", icon: "\u{1F69A}", desc: "Moving data across systems manually" },
     { name: "Overprocessing", icon: "⚙️", desc: "Redundant analysis steps" },
-    { name: "Inventory/Stock", icon: "📋", desc: "Backlog of unprocessed requests" },
-    { name: "Defects & Rework", icon: "🔁", desc: "~30% ticket reopen rate" },
+    { name: "Inventory/Stock", icon: "\u{1F4CB}", desc: "Backlog of unprocessed requests" },
+    { name: "Defects & Rework", icon: "\u{1F501}", desc: "~30% ticket reopen rate" },
   ];
   return (
     <Section id="problem">
@@ -310,7 +373,6 @@ function VSMSection() {
           </button>
         </div>
 
-        {/* Process Steps */}
         <div style={{
           display: "flex", gap: 8, overflowX: "auto", paddingBottom: 16,
         }}>
@@ -346,7 +408,6 @@ function VSMSection() {
                   fontWeight: 600,
                 }}>{s.auto ? "AUTOMATED" : "MANUAL"}</div>
               )}
-              {/* Arrow */}
               {i < steps.length - 1 && (
                 <div style={{
                   position: "absolute", right: -16, top: "50%", color: COLORS.gray,
@@ -357,7 +418,6 @@ function VSMSection() {
           ))}
         </div>
 
-        {/* Timeline bar */}
         <div style={{
           display: "flex", marginTop: 16, height: 28, borderRadius: 6, overflow: "hidden",
           background: COLORS.card,
@@ -379,7 +439,6 @@ function VSMSection() {
           })}
         </div>
 
-        {/* Metrics comparison */}
         <div style={{
           display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
           gap: 12, marginTop: 32,
@@ -413,12 +472,12 @@ function ArchitectureSection() {
   const [hoveredNode, setHoveredNode] = useState(null);
 
   const nodes = {
-    github: { label: "GitHub", sub: "Issue Created (Webhook)", x: 0, y: 1, color: COLORS.white, icon: "🐙" },
+    github: { label: "GitHub", sub: "Issue Created (Webhook)", x: 0, y: 1, color: COLORS.white, icon: "\u{1F419}" },
     argoEvents: { label: "Argo Events", sub: "EventSource + Sensor", x: 1, y: 0.5, color: COLORS.teal, icon: "⚡" },
-    step1: { label: "1. Fetch Issue", sub: "GitHub MCP Server", x: 2, y: 0, color: COLORS.gold, icon: "📥" },
-    step2: { label: "2. LLM Analysis", sub: "Requirement extraction", x: 2, y: 1, color: COLORS.teal, icon: "🧠" },
-    step3: { label: "3. Create Jira", sub: "Atlassian MCP", x: 2, y: 2, color: COLORS.gold, icon: "📝" },
-    jira: { label: "Atlassian Jira", sub: "FR & NFR Structured Output", x: 3, y: 1, color: COLORS.white, icon: "🎫" },
+    step1: { label: "1. Fetch Issue", sub: "GitHub MCP Server", x: 2, y: 0, color: COLORS.gold, icon: "\u{1F4E5}" },
+    step2: { label: "2. LLM Analysis", sub: "Requirement extraction", x: 2, y: 1, color: COLORS.teal, icon: "\u{1F9E0}" },
+    step3: { label: "3. Create Jira", sub: "Atlassian MCP", x: 2, y: 2, color: COLORS.gold, icon: "\u{1F4DD}" },
+    jira: { label: "Atlassian Jira", sub: "FR & NFR Structured Output", x: 3, y: 1, color: COLORS.white, icon: "\u{1F3AB}" },
   };
 
   return (
@@ -436,7 +495,6 @@ function ArchitectureSection() {
           fontFamily: "'Outfit'", fontSize: 15, color: COLORS.gray, marginBottom: 40,
         }}>Running on Kubernetes (EKS/AKS) with Argo Workflows and MCP Protocol</p>
 
-        {/* Architecture visual */}
         <div style={{
           display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr",
           gap: 16, position: "relative",
@@ -474,7 +532,6 @@ function ArchitectureSection() {
           ))}
         </div>
 
-        {/* Key Technologies */}
         <div style={{
           display: "flex", gap: 12, marginTop: 40, flexWrap: "wrap", justifyContent: "center",
         }}>
@@ -510,11 +567,11 @@ function SimulatorSection() {
   const timerRef = useRef(null);
 
   const pipeline = [
-    { name: "GitHub Webhook Received", duration: 400, icon: "🐙", log: "Event: issues.opened on repo cloud-platform/intake" },
+    { name: "GitHub Webhook Received", duration: 400, icon: "\u{1F419}", log: "Event: issues.opened on repo cloud-platform/intake" },
     { name: "Argo EventSource Triggered", duration: 600, icon: "⚡", log: "Sensor matched: github-issue-sensor → trigger workflow" },
-    { name: "Fetching Issue via MCP", duration: 800, icon: "📥", log: "MCP:github:get_issue → fetched issue #347: 'Add rate limiting to API gateway'" },
-    { name: "LLM Analyzing Requirements", duration: 2000, icon: "🧠", log: "Extracting FR/NFR... Classifying priority... Generating acceptance criteria..." },
-    { name: "Creating Jira Ticket", duration: 600, icon: "📝", log: "MCP:atlassian:create_issue → PLAT-1892 created in Cloud Platform backlog" },
+    { name: "Fetching Issue via MCP", duration: 800, icon: "\u{1F4E5}", log: "MCP:github:get_issue → fetched issue #347: 'Add rate limiting to API gateway'" },
+    { name: "LLM Analyzing Requirements", duration: 2000, icon: "\u{1F9E0}", log: "Extracting FR/NFR... Classifying priority... Generating acceptance criteria..." },
+    { name: "Creating Jira Ticket", duration: 600, icon: "\u{1F4DD}", log: "MCP:atlassian:create_issue → PLAT-1892 created in Cloud Platform backlog" },
     { name: "Human Review Ready", duration: 400, icon: "✅", log: "Notification sent to #platform-intake. Awaiting review." },
   ];
 
@@ -562,7 +619,6 @@ function SimulatorSection() {
           fontFamily: "'Outfit'", fontSize: 15, color: COLORS.gray, marginBottom: 32,
         }}>Watch the intelligent ticket pipeline process a GitHub issue in real time</p>
 
-        {/* Run button */}
         <button
           onClick={startSimulation}
           disabled={running}
@@ -579,13 +635,11 @@ function SimulatorSection() {
           {running ? "Running Pipeline..." : "▶  Run Pipeline"}
         </button>
 
-        {/* Pipeline steps */}
         <div style={{
           display: "flex", gap: 4, marginBottom: 24, flexWrap: "wrap", justifyContent: "center",
         }}>
           {pipeline.map((p, i) => {
             const isActive = i === step;
-            const isDone = i < step || (!running && step >= pipeline.length - 1 && i <= pipeline.length - 1);
             const finalDone = !running && ticketResult && i <= pipeline.length - 1;
             return (
               <div key={i} style={{
@@ -621,7 +675,6 @@ function SimulatorSection() {
           })}
         </div>
 
-        {/* Log output */}
         <div style={{
           background: "#0a0e1a", borderRadius: 10, padding: 20,
           border: `1px solid ${COLORS.navyLight}`,
@@ -639,7 +692,6 @@ function SimulatorSection() {
           ))}
         </div>
 
-        {/* Ticket result */}
         {ticketResult && (
           <div style={{
             background: COLORS.card, borderRadius: 12, padding: 24, marginTop: 20,
@@ -759,7 +811,6 @@ function MetricsSection() {
                   <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 16, color: COLORS.teal, fontWeight: 600 }}>{m.after}</div>
                 </div>
               </div>
-              {/* Progress bar */}
               <div style={{ height: 6, background: COLORS.navyLight, borderRadius: 3, overflow: "hidden", marginBottom: 12 }}>
                 <div style={{
                   height: "100%", background: `linear-gradient(90deg, ${COLORS.red}, ${m.color})`,
@@ -778,7 +829,6 @@ function MetricsSection() {
           ))}
         </div>
 
-        {/* Definitions */}
         <div style={{
           background: COLORS.card, borderRadius: 12, padding: 24,
           border: `1px solid ${COLORS.navyLight}`,
@@ -801,14 +851,165 @@ function MetricsSection() {
   );
 }
 
+// ─── Thank You Section ───
+function ThankYouSection() {
+  const [ref, inView] = useInView(0.1);
+  return (
+    <section
+      ref={ref}
+      id="thankyou"
+      style={{
+        minHeight: "100vh",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", textAlign: "center",
+        background: `radial-gradient(ellipse at 50% 40%, ${COLORS.navyLight} 0%, ${COLORS.bg} 70%)`,
+        padding: "60px 24px", position: "relative", overflow: "hidden",
+      }}
+    >
+      <div style={{
+        position: "absolute", inset: 0, opacity: 0.04,
+        backgroundImage: `linear-gradient(${COLORS.teal} 1px, transparent 1px), linear-gradient(90deg, ${COLORS.teal} 1px, transparent 1px)`,
+        backgroundSize: "60px 60px",
+      }} />
+      <div style={{
+        position: "absolute", top: "30%", left: "50%", transform: "translate(-50%,-50%)",
+        width: 500, height: 500, borderRadius: "50%",
+        background: `radial-gradient(circle, rgba(45,212,168,0.1) 0%, transparent 70%)`,
+        filter: "blur(80px)",
+      }} />
+
+      <div style={{
+        position: "relative", zIndex: 1,
+        opacity: inView ? 1 : 0,
+        transform: inView ? "translateY(0)" : "translateY(40px)",
+        transition: "all 1s ease",
+      }}>
+        <div style={{
+          fontFamily: "'JetBrains Mono'", fontSize: 13, color: COLORS.teal,
+          letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 24,
+          background: "rgba(45,212,168,0.1)", display: "inline-block",
+          padding: "6px 20px", borderRadius: 20, border: `1px solid rgba(45,212,168,0.2)`,
+        }}>KCD Toronto 2026</div>
+
+        <h1 style={{
+          fontFamily: "'Outfit'", fontWeight: 900, fontSize: "clamp(48px, 8vw, 96px)",
+          color: COLORS.white, lineHeight: 1.05, margin: "16px 0",
+        }}>
+          Thank You
+        </h1>
+
+        <p style={{
+          fontFamily: "'Outfit'", fontWeight: 300, fontSize: "clamp(16px, 2vw, 22px)",
+          color: COLORS.gray, margin: "8px 0 48px", maxWidth: 500,
+        }}>
+          Gonzalo Vazquez &middot; Director, Cloud Engineering &middot; Royal Bank of Canada
+        </p>
+
+        <div style={{
+          display: "flex", gap: 48, justifyContent: "center", alignItems: "center",
+          flexWrap: "wrap",
+        }}>
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
+            opacity: inView ? 1 : 0,
+            transform: inView ? "translateY(0)" : "translateY(20px)",
+            transition: "all 0.8s ease 0.3s",
+          }}>
+            <div style={{
+              background: COLORS.white, borderRadius: 16, padding: 16,
+              boxShadow: `0 0 40px rgba(45,212,168,0.15)`,
+            }}>
+              <QRCodeSVG
+                value="https://gonzalovazquez.github.io/ai-ticketing-pipeline/"
+                size={160}
+                bgColor={COLORS.white}
+                fgColor={COLORS.bg}
+                level="M"
+              />
+            </div>
+            <div style={{
+              fontFamily: "'JetBrains Mono'", fontSize: 11, color: COLORS.gray,
+              maxWidth: 180, lineHeight: 1.4,
+            }}>
+              Scan to view this presentation
+            </div>
+          </div>
+
+          <div style={{
+            display: "flex", flexDirection: "column", gap: 16, alignItems: "flex-start",
+            opacity: inView ? 1 : 0,
+            transform: inView ? "translateY(0)" : "translateY(20px)",
+            transition: "all 0.8s ease 0.5s",
+          }}>
+            <a
+              href="https://github.com/gonzalovazquez/ai-ticketing-pipeline"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex", alignItems: "center", gap: 12,
+                background: COLORS.card, borderRadius: 12, padding: "16px 24px",
+                border: `1px solid ${COLORS.navyLight}`,
+                textDecoration: "none",
+                transition: "all 0.3s",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = COLORS.teal;
+                e.currentTarget.style.boxShadow = `0 4px 24px rgba(45,212,168,0.15)`;
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = COLORS.navyLight;
+                e.currentTarget.style.boxShadow = "none";
+              }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill={COLORS.white}>
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+              </svg>
+              <div>
+                <div style={{ fontFamily: "'Outfit'", fontWeight: 600, fontSize: 15, color: COLORS.white }}>
+                  View Source Code
+                </div>
+                <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 11, color: COLORS.gray, marginTop: 2 }}>
+                  gonzalovazquez/ai-ticketing-pipeline
+                </div>
+              </div>
+            </a>
+
+            <div style={{
+              fontFamily: "'JetBrains Mono'", fontSize: 12, color: COLORS.grayDark,
+              paddingLeft: 4, lineHeight: 1.6,
+            }}>
+              <div style={{ color: COLORS.gray, marginBottom: 4 }}>gonzalovazquez.ca</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Main App ───
 export default function App() {
   const [active, setActive] = useState("hero");
+  const [presentationMode, setPresentationMode] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const isScrolling = useRef(false);
+
+  const goToSlide = useCallback((index) => {
+    const clampedIndex = Math.max(0, Math.min(index, SLIDES.length - 1));
+    const el = document.getElementById(SLIDES[clampedIndex]);
+    if (!el) return;
+    isScrolling.current = true;
+    el.scrollIntoView({ behavior: "smooth" });
+    setActive(SLIDES[clampedIndex]);
+    setTimeout(() => { isScrolling.current = false; }, 800);
+  }, []);
+
+  const currentIndex = SLIDES.indexOf(active);
 
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ["hero", "problem", "vsm", "architecture", "simulator", "metrics"];
-      for (const id of [...sections].reverse()) {
+      if (isScrolling.current) return;
+      for (const id of [...SLIDES].reverse()) {
         const el = document.getElementById(id);
         if (el && el.getBoundingClientRect().top <= 200) {
           setActive(id);
@@ -818,6 +1019,73 @@ export default function App() {
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+      switch (e.key) {
+        case "ArrowRight":
+        case "ArrowDown":
+        case "PageDown":
+        case " ":
+          e.preventDefault();
+          goToSlide(currentIndex + 1);
+          break;
+        case "ArrowLeft":
+        case "ArrowUp":
+        case "PageUp":
+          e.preventDefault();
+          goToSlide(currentIndex - 1);
+          break;
+        case "Home":
+          e.preventDefault();
+          goToSlide(0);
+          break;
+        case "End":
+          e.preventDefault();
+          goToSlide(SLIDES.length - 1);
+          break;
+        case "f":
+        case "F":
+          if (!e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            if (document.fullscreenElement) {
+              document.exitFullscreen();
+              setPresentationMode(false);
+            } else {
+              document.documentElement.requestFullscreen();
+              setPresentationMode(true);
+            }
+          }
+          break;
+        case "Escape":
+          if (presentationMode && !document.fullscreenElement) {
+            setPresentationMode(false);
+          }
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [currentIndex, goToSlide, presentationMode]);
+
+  useEffect(() => {
+    const onFSChange = () => {
+      if (!document.fullscreenElement) {
+        setPresentationMode(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", onFSChange);
+    return () => document.removeEventListener("fullscreenchange", onFSChange);
+  }, []);
+
+  useEffect(() => {
+    setShowHint(true);
+    const t = setTimeout(() => setShowHint(false), 4000);
+    return () => clearTimeout(t);
   }, []);
 
   return (
@@ -834,25 +1102,45 @@ export default function App() {
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
-      <Nav active={active} />
+      <Nav active={active} presentationMode={presentationMode} />
+      <SlideIndicator current={currentIndex} total={SLIDES.length} />
+      <PresentationHint visible={showHint} />
+
+      {!presentationMode && (
+        <button
+          onClick={() => {
+            document.documentElement.requestFullscreen();
+            setPresentationMode(true);
+          }}
+          title="Enter presentation mode (F)"
+          style={{
+            position: "fixed", bottom: 24, right: 24, zIndex: 200,
+            background: COLORS.card, border: `1px solid ${COLORS.navyLight}`,
+            color: COLORS.gray, borderRadius: 8, padding: "8px 12px",
+            cursor: "pointer", fontFamily: "'JetBrains Mono'", fontSize: 11,
+            display: "flex", alignItems: "center", gap: 6,
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = COLORS.teal; e.currentTarget.style.color = COLORS.teal; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = COLORS.navyLight; e.currentTarget.style.color = COLORS.gray; }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="15 3 21 3 21 9" />
+            <polyline points="9 21 3 21 3 15" />
+            <line x1="21" y1="3" x2="14" y2="10" />
+            <line x1="3" y1="21" x2="10" y2="14" />
+          </svg>
+          Present
+        </button>
+      )}
+
       <Hero />
       <ProblemSection />
       <VSMSection />
       <ArchitectureSection />
       <SimulatorSection />
       <MetricsSection />
-      {/* Footer */}
-      <footer style={{
-        textAlign: "center", padding: "40px 24px", background: COLORS.bg,
-        borderTop: `1px solid ${COLORS.navyLight}`,
-      }}>
-        <div style={{ fontFamily: "'Outfit'", fontWeight: 600, fontSize: 18, color: COLORS.white, marginBottom: 8 }}>
-          Thank You
-        </div>
-        <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 12, color: COLORS.gray }}>
-          Gonzalo Vazquez &middot; KCD Toronto 2026 &middot; gonzalovazquez.ca
-        </div>
-      </footer>
+      <ThankYouSection />
     </div>
   );
 }
