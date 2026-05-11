@@ -9,6 +9,7 @@
 
 - [ ] Laptop charged, charger packed
 - [ ] Hotspot ready (don't trust venue WiFi for live demo)
+- [ ] Open https://gonzalovazquez.github.io/ai-ticketing-pipeline/
 - [ ] Log into [JIRA](https://gonzalo-vazquez.atlassian.net/jira/software/projects/KAN/boards/1)
 - [ ] SSH into Server
 - [ ] ngrok running and GitHub webhook URL updated
@@ -194,8 +195,8 @@ kubectl -n argo port-forward deployment/argo-server 2746:2746 --address=0.0.0.0 
 | Thing | Value |
 |---|---|
 | Argo UI | https://localhost:2746 |
-| Jira project | https://your-org.atlassian.net/jira/software/projects/DEMO |
-| GitHub test repo | https://github.com/your-username/ai-ticket-demo |
+| Jira project | https://gonzalo-vazquez.atlassian.net/jira/software/projects/KAN/boards/1 |
+| GitHub test repo | https://github.com/gonzalovazquez/ai-ticket-demo |
 | ngrok dashboard | http://127.0.0.1:4040 |
 | Working image tags | ai-classifier:v3 / ai-enricher:v3 / ai-jira:v1 |
 | Argo namespace | `argo` |
