@@ -9,6 +9,8 @@
 
 - [ ] Laptop charged, charger packed
 - [ ] Hotspot ready (don't trust venue WiFi for live demo)
+- [ ] Log into [JIRA](https://gonzalo-vazquez.atlassian.net/jira/software/projects/KAN/boards/1)
+- [ ] SSH into Server
 - [ ] ngrok running and GitHub webhook URL updated
 - [ ] Test issue fired and Jira ticket confirmed created
 - [ ] Argo UI open at https://localhost:2746
