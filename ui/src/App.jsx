@@ -21,7 +21,7 @@ const fonts = `
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 `;
 
-const SLIDES = ["hero", "problem", "vsm", "architecture", "simulator", "metrics", "thankyou"];
+const SLIDES = ["hero", "problem", "vsm", "architecture", "simulator", "solution-arch", "metrics", "thankyou"];
 
 // ─── Utility: Intersection Observer Hook ───
 function useInView(threshold = 0.2) {
@@ -92,6 +92,7 @@ function Nav({ active, presentationMode }) {
     { id: "vsm", label: "Value Stream" },
     { id: "architecture", label: "Architecture" },
     { id: "simulator", label: "Simulator" },
+    { id: "solution-arch", label: "Solution" },
     { id: "metrics", label: "Metrics" },
     { id: "thankyou", label: "Thank You" },
   ];
@@ -759,6 +760,220 @@ function SimulatorSection() {
   );
 }
 
+// ─── Solution Architecture Diagram ───
+function SolutionArchSection() {
+  const [ref, inView] = useInView(0.1);
+
+  const flowSteps = [
+    { label: "1. Fetch\nIssue", color: COLORS.teal },
+    { label: "2. LLM\nAnalysis", color: COLORS.gold },
+    { label: "3. Create\nJira", color: COLORS.teal },
+  ];
+
+  return (
+    <Section id="solution-arch">
+      <div ref={ref} style={{ maxWidth: 1050, width: "100%" }}>
+        <div style={{
+          fontFamily: "'JetBrains Mono'", fontSize: 12, color: COLORS.teal,
+          letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 12,
+        }}>Solution Architecture</div>
+        <h2 style={{
+          fontFamily: "'Outfit'", fontWeight: 800, fontSize: "clamp(26px,3.5vw,42px)",
+          color: COLORS.white, margin: "0 0 8px",
+        }}>Event-Driven Intake Pipeline on Kubernetes (EKS/AKS)</h2>
+        <p style={{
+          fontFamily: "'Outfit'", fontSize: 15, color: COLORS.gray, marginBottom: 40,
+        }}>End-to-end flow from GitHub issue to structured Jira ticket</p>
+
+        {/* Main diagram */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "160px 1fr 160px",
+          gap: 20,
+          alignItems: "center",
+          opacity: inView ? 1 : 0,
+          transform: inView ? "translateY(0)" : "translateY(30px)",
+          transition: "all 0.8s ease",
+        }}>
+          {/* LEFT: GitHub */}
+          <div style={{
+            background: COLORS.card, borderRadius: 12, padding: 20,
+            border: `2px solid ${COLORS.navyLight}`, textAlign: "center",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
+          }}>
+            <div style={{
+              fontFamily: "'Outfit'", fontWeight: 700, fontSize: 16, color: COLORS.white,
+            }}>GitHub</div>
+            <div style={{
+              fontFamily: "'Outfit'", fontSize: 12, color: COLORS.gray, lineHeight: 1.4,
+            }}>Issue Created<br />(Webhook)</div>
+            <div style={{
+              background: COLORS.bg, borderRadius: 8, padding: "8px 14px",
+              border: `1px solid ${COLORS.teal}`,
+            }}>
+              <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 10, color: COLORS.teal }}>GitHub</div>
+              <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 9, color: COLORS.gray }}>MCP Server</div>
+            </div>
+          </div>
+
+          {/* CENTER: Kubernetes Cluster */}
+          <div style={{
+            border: `2px dashed ${COLORS.teal}`,
+            borderRadius: 16, padding: 24, position: "relative",
+            background: "rgba(45,212,168,0.03)",
+          }}>
+            <div style={{
+              position: "absolute", top: -12, left: 24,
+              background: COLORS.bg, padding: "2px 12px",
+              fontFamily: "'JetBrains Mono'", fontSize: 11, color: COLORS.teal,
+              fontWeight: 600, letterSpacing: "0.05em",
+            }}>Kubernetes Cluster (EKS/AKS)</div>
+
+            {/* Argo Events */}
+            <div style={{
+              display: "flex", gap: 16, alignItems: "center", marginBottom: 20,
+            }}>
+              <div style={{
+                background: COLORS.tealDark, borderRadius: 8, padding: "12px 18px",
+                minWidth: 120, textAlign: "center", flexShrink: 0,
+              }}>
+                <div style={{ fontFamily: "'Outfit'", fontWeight: 700, fontSize: 13, color: COLORS.white }}>Argo Events</div>
+                <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 10, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>Event Source + Sensor</div>
+              </div>
+
+              {/* Arrow to workflows */}
+              <div style={{ color: COLORS.teal, fontSize: 20, flexShrink: 0 }}>&#8594;</div>
+
+              {/* Argo Workflows box */}
+              <div style={{
+                flex: 1, border: `2px solid ${COLORS.teal}`, borderRadius: 10,
+                padding: 16, position: "relative",
+                background: "rgba(45,212,168,0.05)",
+              }}>
+                <div style={{
+                  position: "absolute", top: -10, left: 16,
+                  background: COLORS.bg, padding: "1px 10px",
+                  fontFamily: "'JetBrains Mono'", fontSize: 10, color: COLORS.teal,
+                  fontWeight: 600,
+                }}>Argo Workflows</div>
+
+                <div style={{
+                  display: "flex", gap: 8, alignItems: "center", justifyContent: "center",
+                }}>
+                  {flowSteps.map((s, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{
+                        background: s.color, borderRadius: 8, padding: "10px 16px",
+                        textAlign: "center", minWidth: 90,
+                      }}>
+                        <div style={{
+                          fontFamily: "'Outfit'", fontWeight: 600, fontSize: 12,
+                          color: COLORS.navy, whiteSpace: "pre-line", lineHeight: 1.3,
+                        }}>{s.label}</div>
+                      </div>
+                      {i < flowSteps.length - 1 && (
+                        <div style={{ color: COLORS.gray, fontSize: 16 }}>&#8594;</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* MCP Containers */}
+            <div style={{ marginTop: 4 }}>
+              <div style={{
+                fontFamily: "'JetBrains Mono'", fontSize: 10, color: COLORS.gray,
+                marginBottom: 8, letterSpacing: "0.05em",
+              }}>MCP Containers (Sidecar/Init)</div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <div style={{
+                  background: COLORS.tealDark, borderRadius: 6, padding: "8px 18px",
+                  textAlign: "center",
+                }}>
+                  <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 11, color: COLORS.white, fontWeight: 600 }}>Atlassian MCP</div>
+                </div>
+                <div style={{
+                  background: COLORS.gold, borderRadius: 6, padding: "8px 18px",
+                  textAlign: "center",
+                }}>
+                  <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 11, color: COLORS.navy, fontWeight: 600 }}>AWS MCP</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT: Atlassian */}
+          <div style={{
+            background: COLORS.card, borderRadius: 12, padding: 20,
+            border: `2px solid ${COLORS.navyLight}`, textAlign: "center",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
+          }}>
+            <div style={{
+              fontFamily: "'Outfit'", fontWeight: 700, fontSize: 16, color: COLORS.white,
+            }}>Atlassian</div>
+            <div style={{
+              fontFamily: "'Outfit'", fontSize: 12, color: COLORS.gray, lineHeight: 1.4,
+            }}>Jira Ticket<br />Created</div>
+            <div style={{
+              background: COLORS.bg, borderRadius: 8, padding: "8px 14px",
+              border: `1px solid ${COLORS.gold}`,
+            }}>
+              <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 10, color: COLORS.gold }}>FR & NFR</div>
+              <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 9, color: COLORS.gray }}>Structured Output</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Flow arrows between main sections */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "160px 1fr 160px",
+          gap: 20, marginTop: -8, marginBottom: 8,
+          opacity: inView ? 1 : 0,
+          transition: "opacity 0.5s ease 0.4s",
+        }}>
+          <div style={{ textAlign: "center", color: COLORS.teal, fontSize: 18 }}>&#8594;</div>
+          <div />
+          <div style={{ textAlign: "center", color: COLORS.teal, fontSize: 18, transform: "scaleX(-1)" }}>&#8592;</div>
+        </div>
+
+        {/* Key Technologies */}
+        <div style={{
+          marginTop: 36,
+          opacity: inView ? 1 : 0,
+          transform: inView ? "translateY(0)" : "translateY(20px)",
+          transition: "all 0.6s ease 0.5s",
+        }}>
+          <div style={{
+            fontFamily: "'Outfit'", fontWeight: 700, fontSize: 16, color: COLORS.white,
+            marginBottom: 16,
+          }}>Key Technologies</div>
+          <div style={{
+            display: "flex", gap: 12, flexWrap: "wrap",
+          }}>
+            {[
+              { name: "Argo Events", desc: "Event-driven triggers", borderColor: COLORS.teal },
+              { name: "Argo Workflows", desc: "DAG orchestration", borderColor: COLORS.teal },
+              { name: "MCP Protocol", desc: "Tool integration", borderColor: COLORS.gold },
+              { name: "LLM (Bedrock/Azure)", desc: "Requirement extraction", borderColor: COLORS.gold },
+            ].map((t) => (
+              <div key={t.name} style={{
+                flex: "1 0 180px",
+                background: COLORS.card, borderRadius: 8, padding: "14px 20px",
+                borderLeft: `4px solid ${t.borderColor}`,
+                textAlign: "left",
+              }}>
+                <div style={{ fontFamily: "'Outfit'", fontWeight: 600, fontSize: 14, color: COLORS.white }}>{t.name}</div>
+                <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 11, color: COLORS.gray, marginTop: 2 }}>{t.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 // ─── Metrics Dashboard ───
 function MetricsSection() {
   const [ref, inView] = useInView(0.2);
@@ -1139,6 +1354,7 @@ export default function App() {
       <VSMSection />
       <ArchitectureSection />
       <SimulatorSection />
+      <SolutionArchSection />
       <MetricsSection />
       <ThankYouSection />
     </div>
